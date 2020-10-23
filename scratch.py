@@ -125,17 +125,18 @@ class IncidentCollections(dict):
         return True
 
     def import_binary(self, filename):
+        print("Entering `import_binary`")
 
-        def unpack_string(file, eof_is_error=True):
-            print(f"{eof_is_error= }")
+        def unpack_string(file, eof_is_error=False):
+            print(f"Entering `unpack_string`... {eof_is_error= }")
             uint16 = struct.Struct("<H")
             length_data = file.read(uint16.size)
-            print("yes", length_data, 87)
+            print(f"{length_data= }")
 
             if not length_data:
                 if eof_is_error:
                     raise ValueError("missing or corrupt string size")
-                return 78
+                return None
 
             length = uint16.unpack(length_data)[0]
             print(f"{length= }")
@@ -151,51 +152,61 @@ class IncidentCollections(dict):
             return struct.unpack(f"<{length}s", data)[0].decode("utf8")
 
 
-        print("Entering `import_binary`")
         NumbersStruct = struct.Struct("<Idi?")
-        fh = None
+        file = None
         MAGIC = b"AIB\x00"
         FORMAT_VERSION = b"\x00\x01"
         GZIP_MAGIC = b"\x1F\x8B"
-        try:
-            fh = open(filename, "rb")
-            magic = fh.read(len(GZIP_MAGIC))
-            if magic == GZIP_MAGIC:
-                fh.close()
-                fh = gzip.open(filename, "rb")
-            else:
-                fh.seek(0)
-            magic = fh.read(len(MAGIC))
-            if magic != MAGIC:
-                raise ValueError("invalid .aib file format")
-            version = fh.read(len(FORMAT_VERSION))
-            if version > FORMAT_VERSION:
-                raise ValueError("unrecognized .aib file version")
-            self.clear()
-        except Exception as err:
-            print(err)
 
+        # try:
+        file = open(filename, "rb")
+        magic = file.read(len(GZIP_MAGIC))
+        if magic == GZIP_MAGIC:
+            file.close()
+            file = gzip.open(filename, "rb")
+        else:
+            file.seek(0)
+
+        magic = file.read(len(MAGIC))
+        if magic != MAGIC:
+            raise ValueError("invalid .aib file format")
+
+        version = file.read(len(FORMAT_VERSION))
+        if version > FORMAT_VERSION:
+            raise ValueError("unrecognized .aib file version")
+
+        self.clear()
+        # except Exception as err:
+        #     print(err)
+
+        data = {}
         while True:
-            report_id = unpack_string(fh, False)
-            if report_id is None:
+            report_id = unpack_string(file, False)
+            if report_id is None:  # End of data
                 break
-            data = {}
             data["report_id"] = report_id
+            print(f"\n{report_id= }\n")
+
             for name in ("airport", "aircraft_id", "aircraft_type", "narrative"):
-                data[name] = unpack_string(fh)
-                print(data[name],34)
-                other_data = fh.read(NumbersStruct.size)
+                data[name] = unpack_string(file)
+                print(f"{name}= {data[name]!r}\n")
+
+            other_data = file.read(NumbersStruct.size)
             numbers = NumbersStruct.unpack(other_data)
             data["date"] = datetime.date.fromordinal(numbers[0])
             data["pilot_percent_hours_on_type"] = numbers[1]
             data["pilot_total_hours"] = numbers[2]
             data["midair"] = numbers[3]
+
             incident = Incident(**data)
-            self[incident.report_id] = incident
-            print(89)
-        return True
+            self[report_id] = incident
+            data.clear()
+
+
 z = IncidentCollections()
 z[0] = Incident("03434343",datetime.datetime.now(),"heathr","bone", "erereded",90,midair=True,pilot_total_hours=99900)
 z.export_binary("./me.bin")
-print(z.import_binary("./me.bin"))
+z.import_binary("./me.bin")
+
+print(z)
 
