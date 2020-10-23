@@ -60,27 +60,27 @@ class IncidentCollections(dict):
 
     def import_pickle(self, filename):
         GZIP_MAGIC = b"\x1F\x8B"
-        fh = None
+        file = None
         try:
-            fh = open(filename, "rb")
-            magic = fh.read(len(GZIP_MAGIC))
+            file = open(filename, "rb")
+            magic = file.read(len(GZIP_MAGIC))
             if magic == GZIP_MAGIC:
-                fh.close()
-                fh = gzip.open(filename, "rb")
+                file.close()
+                file = gzip.open(filename, "rb")
             else:
-                fh.seek(0)
+                file.seek(0)
             self.clear()
-            self.update(pickle.load(fh))
+            self.update(pickle.load(file))
             return True
         except (EnvironmentError, pickle.UnpicklingError) as err:
-            print("{0}: import error: {1}".format(
-            os.path.basename(sys.argv[0]), err))
+            print("{0}: import error: {1}".format(os.path.basename(sys.argv[0]),
+                                                    err))
             return False
         finally:
-            if fh is not None:
-                fh.close()
-        MAGIC = b"AIB\x00"
-        FORMAT_VERSION = b"\x00\x01"
+            if file is not None:
+                file.close()
+        # MAGIC = b"AIB\x00"
+        # FORMAT_VERSION = b"\x00\x01"
 
     def export_binary(self, filename, compress = False):
         print("eerre")
