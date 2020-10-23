@@ -138,16 +138,17 @@ class IncidentCollections(dict):
                 return 78
 
             length = uint16.unpack(length_data)[0]
-            print(length, "2343")
-            if length == 0:
+            print(f"{length= }")
+            if not length:
                 return ""
+
             data = file.read(length)
-            print(data,"re")
-            print(data,"me",len(data),length,len(data) != length)
-            if not data or len(data) != length:
+            print(f"{data= }")
+            print(data, len(data), length)
+            if len(data) != length:
                 raise ValueError("missing or corrupt string")
-            format = "<{0}s".format(length)
-            return struct.unpack(format, data)[0].decode("utf8")
+
+            return struct.unpack(f"<{length}s", data)[0].decode("utf8")
 
 
         print("Entering `import_binary`")
