@@ -1,4 +1,4 @@
-import datetime,gzip,pickle,os,sys,struct
+import datetime, gzip, pickle, os, sys, struct
 
 class Incident:
     def __init__(self, report_id, date, airport, aircraft_id,
@@ -6,7 +6,7 @@ class Incident:
                  pilot_total_hours, midair, narrative=""):
         assert len(report_id) >= 8 and len(report_id.split()) == 1, "invalid report ID"
         self.report_id = report_id
-        self.date = date
+        self._date = date
         self.airport = airport
         self.aircraft_id = aircraft_id
         self.aircraft_type = aircraft_type
@@ -17,13 +17,13 @@ class Incident:
 
     @property
     def date(self):
-        return self.__date
+        return self._date
 
 
     @date.setter
     def date(self, date):
-        assert isinstance(date, datetime.date), "invalid date"
-        self.__date = date
+        assert isinstance(date, datetime.date), "invalid date object"
+        self._date = date
 
 
 class IncidentCollections(dict):
@@ -39,26 +39,24 @@ class IncidentCollections(dict):
         for report_id in sorted(super.keys()):
             yield report_id
 
-    key = __iter__
+    # key = __iter__
 
-    def export_pickle(self, filename,compress = False):
-        fh = None
+    def export_pickle(self, filename, compress=False):
+        file = None
         try:
             if compress:
-                fh = gzip.open(filename,"wb")
+                file = gzip.open(filename,"wb")
             else:
-                fh = open(filename,  "wb")
-            pickle.dump(self, fh, pickle.HIGHEST_PROTOCOL)
+                file = open(filename,  "wb")
+            pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
             return True
         except (EnvironmentError, pickle.UnpicklingError) as err:
-            print("{0}: export error: {1}".format(
-                os.path.basename(sys.argv[0]), err))
+            print("{0}: export error: {1}".format(os.path.basename(sys.argv[0]),
+                                                    err))
             return False
         finally:
-            if fh is not None:
-                fh.close()
-
-            GZIP_MAGIC = b"\x1F\x8B"
+            if file is not None:
+                file.close()
 
     def import_pickle(self, filename):
         GZIP_MAGIC = b"\x1F\x8B"
@@ -121,13 +119,12 @@ class IncidentCollections(dict):
         return True
 
     def import_binary(self, filename):
-        print("4343")
-        NumbersStruct = struct.Struct("<Idi?")
-        def unpack_string(fh, eof_is_error=True):
-            print(eof_is_error)
+
+        def unpack_string(file, eof_is_error=True):
+            print(f"{eof_is_error= }")
             uint16 = struct.Struct("<H")
-            length_data = fh.read(uint16.size)
-            print("yes", length_data,87)
+            length_data = file.read(uint16.size)
+            print("yes", length_data, 87)
 
             if not length_data:
                 if eof_is_error:
@@ -138,7 +135,7 @@ class IncidentCollections(dict):
             print(length, "2343")
             if length == 0:
                 return ""
-            data = fh.read(length)
+            data = file.read(length)
             print(data,"re")
             print(data,"me",len(data),length,len(data) != length)
             if not data or len(data) != length:
@@ -146,6 +143,9 @@ class IncidentCollections(dict):
             format = "<{0}s".format(length)
             return struct.unpack(format, data)[0].decode("utf8")
 
+
+        print("Entering `import_binary`")
+        NumbersStruct = struct.Struct("<Idi?")
         fh = None
         MAGIC = b"AIB\x00"
         FORMAT_VERSION = b"\x00\x01"
@@ -174,8 +174,7 @@ class IncidentCollections(dict):
                 break
             data = {}
             data["report_id"] = report_id
-            for name in ("airport", "aircraft_id",
-                         "aircraft_type", "narrative"):
+            for name in ("airport", "aircraft_id", "aircraft_type", "narrative"):
                 data[name] = unpack_string(fh)
                 print(data[name],34)
                 other_data = fh.read(NumbersStruct.size)
@@ -190,5 +189,6 @@ class IncidentCollections(dict):
         return True
 z = IncidentCollections()
 z[0] = Incident("03434343",datetime.datetime.now(),"heathr","bone", "erereded",90,midair=True,pilot_total_hours=99900)
-z.export_binary(r"C:\Users\DAVID\.PyCharmCE2019.1\config\scratches\me.bin")
-print(z.import_binary(r"C:\Users\DAVID\.PyCharmCE2019.1\config\scratches\me.bin"))
+z.export_binary("./me.bin")
+print(z.import_binary("./me.bin"))
+
