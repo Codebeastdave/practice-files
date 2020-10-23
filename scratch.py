@@ -83,23 +83,27 @@ class IncidentCollections(dict):
         # FORMAT_VERSION = b"\x00\x01"
 
     def export_binary(self, filename, compress = False):
-        print("eerre")
-        MAGIC = b"AIB\x00"
-        FORMAT_VERSION = b"\x00\x01"
+        print("Entering `export_binary`...")
+
         def pack_string(string):
             data = string.encode("utf8")
             format = "<H{0}s".format(len(data))
             return struct.pack(format, len(data), data)
-        fh = None
+
+        MAGIC = b"AIB\x00"
+        FORMAT_VERSION = b"\x00\x01"
+        file = None
         try:
             if compress:
-                fh = gzip.open(filename, "wb")
-
+                file = gzip.open(filename, "wb")
             else:
-                fh = open(filename, "wb")
-            fh.write(MAGIC)
-            fh.write(FORMAT_VERSION)
+                file = open(filename, "wb")
+
+            file.write(MAGIC)
+            file.write(FORMAT_VERSION)
+
             NumbersStruct = struct.Struct("<Idi?")
+
             for incident in self.values():
                 data = bytearray()
                 data.extend(pack_string(incident.report_id))
@@ -113,9 +117,11 @@ class IncidentCollections(dict):
                     incident.pilot_total_hours,
                     incident.midair
                 ))
-            fh.write(data)
+
+            file.write(data)
         except Exception as err:
             print(err)
+
         return True
 
     def import_binary(self, filename):
