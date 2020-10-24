@@ -6,7 +6,7 @@ class Incident:
                  pilot_total_hours, midair, narrative=""):
         assert len(report_id) >= 8 and len(report_id.split()) == 1, "invalid report ID"
         self.report_id = report_id
-        self._date = date
+        self.date = date
         self.airport = airport
         self.aircraft_id = aircraft_id
         self.aircraft_type = aircraft_type
@@ -17,13 +17,13 @@ class Incident:
 
     @property
     def date(self):
-        return self._date
+        return self.__date
 
 
     @date.setter
     def date(self, date):
         assert isinstance(date, datetime.date), "invalid date object"
-        self._date = date
+        self.__date = date
 
 
 class IncidentCollections(dict):
